@@ -2,7 +2,13 @@ import json
 import logging
 
 import azure.functions as func
-from weasyprint import HTML
+from weasyprint import CSS, HTML
+
+from .PdfOptions import *
+
+"""
+Read the docs: https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#quickstart
+"""
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -10,15 +16,30 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         payload = req.get_json()
         html, options = payload['html'], payload['options']
 
-        logging.info(
-            '[html-to-pdf] Python HTTP trigger function processed a request.')
-        logging.info(f'html={html}\n')
+        if type(html) is not str:
+            raise TypeError('"html" must be a string')
+
+        if type(options) is not dict:
+            raise TypeError('"options" must be an object')
+
+        logging.info('[html-to-pdf] Start generating PDF from HTML.')
+        logging.info(f'html={html}')
         logging.info(f'options={json.dumps(options, indent=4)}\n')
 
-        pdfBytes = HTML(string=str(html)).write_pdf(options)
+        # type cast
+        pdf_options = PdfOptions(options)
+
+        # https://developer.mozilla.org/en-US/docs/Web/CSS/@page
+        layoutStyle = CSS(
+            string="@page { size: %s; margin: %s;  }" % (pdf_options.size, pdf_options.margin))
+
+        document = HTML(string=html).render(
+            stylesheets=[layoutStyle])
+
+        pdf = document.write_pdf()
 
         return func.HttpResponse(
-            pdfBytes,
+            pdf,
             status_code=200,
             mimetype="application/pdf"
         )

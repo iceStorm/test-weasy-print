@@ -4,5 +4,4 @@
 
 azure-functions
 
-WeasyPrint==52.5 
-CairoSVG==2.5.2
+weasyprint==58.1
